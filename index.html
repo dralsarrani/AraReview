@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AraReview — تحليل مشاعر التقييمات العربية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #fafaf8;
+    --bg2:      #f2f0eb;
+    --bg3:      #e8e4dc;
+    --text:     #1c1a16;
+    --muted:    #7a7060;
+    --border:   #ddd8cc;
+    --pos:      #1a6b3c;
+    --pos-bg:   #edfaf3;
+    --pos-bdr:  #a8dfc0;
+    --neg:      #8b1a1a;
+    --neg-bg:   #fdf0f0;
+    --neg-bdr:  #f0b8b8;
+    --accent:   #c4873a;
+    --accent2:  #2d5a8e;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Tajawal', sans-serif;
+    min-height: 100vh;
+    direction: rtl;
+  }
+
+  /* GEOMETRIC BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 40px,
+        rgba(196,135,58,0.04) 40px,
+        rgba(196,135,58,0.04) 41px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 40px,
+        rgba(196,135,58,0.04) 40px,
+        rgba(196,135,58,0.04) 41px
+      );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(250,250,248,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .nav-brand {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .nav-brand span { color: var(--accent); }
+
+  .nav-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 99px;
+    letter-spacing: 0.05em;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 80px 40px 60px;
+    text-align: center;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 6px 18px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 28px;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pos);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(0.8); }
+  }
+
+  .hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 .gold { color: var(--accent); }
+
+  .hero-sub {
+    font-size: 1.05rem;
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 540px;
+    margin: 0 auto 48px;
+    font-weight: 400;
+  }
+
+  /* MAIN CARD */
+  .card {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto 48px;
+    padding: 0 40px;
+  }
+
+  .input-wrapper {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 4px 32px rgba(196,135,58,0.15);
+  }
+
+  .input-label {
+    display: block;
+    padding: 16px 20px 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--bg2);
+  }
+
+  textarea {
+    width: 100%;
+    border: none;
+    outline: none;
+    padding: 16px 20px;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 1rem;
+    color: var(--text);
+    background: transparent;
+    resize: none;
+    line-height: 1.7;
+    direction: rtl;
+    min-height: 140px;
+  }
+
+  textarea::placeholder { color: #b0a898; }
+
+  .input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-top: 1px solid var(--bg2);
+    background: var(--bg);
+  }
+
+  .char-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .analyze-btn {
+    background: var(--text);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 28px;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .analyze-btn:hover {
+    background: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(196,135,58,0.3);
+  }
+
+  .analyze-btn:disabled {
+    background: var(--bg3);
+    color: var(--muted);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .analyze-btn .spinner {
+    display: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* RESULT */
+  .result {
+    margin-top: 16px;
+    border-radius: 16px;
+    padding: 28px;
+    display: none;
+    animation: slideUp 0.4s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity:0; transform:translateY(12px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .result.positive {
+    background: var(--pos-bg);
+    border: 1.5px solid var(--pos-bdr);
+  }
+
+  .result.negative {
+    background: var(--neg-bg);
+    border: 1.5px solid var(--neg-bdr);
+  }
+
+  .result.error {
+    background: #fff8f0;
+    border: 1.5px solid #f0c898;
+  }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .result-icon {
+    font-size: 2.4rem;
+    line-height: 1;
+  }
+
+  .result-label {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .result.positive .result-label { color: var(--pos); }
+  .result.negative .result-label { color: var(--neg); }
+
+  .result-confidence {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .confidence-bar-wrap {
+    background: rgba(0,0,0,0.06);
+    border-radius: 99px;
+    height: 6px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .confidence-bar {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .result.positive .confidence-bar { background: var(--pos); }
+  .result.negative .confidence-bar { background: var(--neg); }
+
+  /* EXAMPLES */
+  .examples {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    margin: 0 auto 80px;
+    padding: 0 40px;
+  }
+
+  .examples-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  .examples-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .example-chip {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: right;
+    line-height: 1.5;
+  }
+
+  .example-chip:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 12px rgba(196,135,58,0.12);
+    transform: translateY(-1px);
+  }
+
+  .example-chip .chip-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .chip-pos { color: var(--pos); }
+  .chip-neg { color: var(--neg); }
+
+  /* STATS */
+  .stats-bar {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 28px 60px;
+    display: flex;
+    justify-content: center;
+    gap: 80px;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+
+  .stat { text-align: center; }
+  .stat-val {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    display: block;
+  }
+  .stat-val .gold { color: var(--accent); }
+  .stat-lbl {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    padding: 28px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+  }
+
+  footer p {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  footer a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  @media(max-width:640px){
+    nav { padding: 14px 20px; }
+    .hero { padding: 48px 20px 40px; }
+    .card, .examples { padding: 0 20px; }
+    .stats-bar { padding: 24px 20px; gap: 40px; }
+    footer { padding: 20px; flex-direction: column; gap: 8px; text-align: center; }
+    .examples-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">Ara<span>Review</span></div>
+  <div class="nav-tag">Arabic Sentiment Analysis · AraBERT</div>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge">النموذج جاهز للاستخدام</div>
+  <h1>تحليل مشاعر<br><span class="gold">التقييمات العربية</span></h1>
+  <p class="hero-sub">
+    نموذج AraBERT مُدرَّب على 105,698 تقييم فندقي عربي.
+    دقة <strong>96.07%</strong> — أدخل أي تقييم باللغة العربية واكتشف مشاعره فوراً.
+  </p>
+</div>
+
+<div class="card">
+  <div class="input-wrapper">
+    <label class="input-label" for="review-input">أدخل التقييم هنا</label>
+    <textarea
+      id="review-input"
+      placeholder="مثال: الفندق كان رائعاً والخدمة ممتازة..."
+      maxlength="512"
+      oninput="updateCount(this)"
+    ></textarea>
+    <div class="input-footer">
+      <span class="char-count"><span id="char-count">0</span> / 512</span>
+      <button class="analyze-btn" id="analyze-btn" onclick="analyze()">
+        <span class="spinner" id="spinner"></span>
+        <span id="btn-text">تحليل المشاعر</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-header">
+      <div class="result-icon" id="result-icon"></div>
+      <div>
+        <div class="result-label" id="result-label"></div>
+        <div class="result-confidence" id="result-confidence"></div>
+      </div>
+    </div>
+    <div class="confidence-bar-wrap">
+      <div class="confidence-bar" id="confidence-bar" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="examples">
+  <div class="examples-title">جرّب هذه الأمثلة</div>
+  <div class="examples-grid">
+    <div class="example-chip" onclick="fillExample(this.querySelector('.chip-text').textContent)">
+      <div class="chip-label chip-pos">✅ إيجابي</div>
+      <div class="chip-text">الفندق رائع والخدمة ممتازة وسأعود مرة أخرى بإذن الله</div>
+    </div>
+    <div class="example-chip" onclick="fillExample(this.querySelector('.chip-text').textContent)">
+      <div class="chip-label chip-neg">❌ سلبي</div>
+      <div class="chip-text">اسوا تجربة في حياتي الغرفة قديمة والخدمة سيئة جداً</div>
+    </div>
+    <div class="example-chip" onclick="fillExample(this.querySelector('.chip-text').textContent)">
+      <div class="chip-label chip-pos">✅ إيجابي</div>
+      <div class="chip-text">موقع ممتاز وإطلالة جميلة والموظفون محترمون ومتعاونون</div>
+    </div>
+    <div class="example-chip" onclick="fillExample(this.querySelector('.chip-text').textContent)">
+      <div class="chip-label chip-neg">❌ سلبي</div>
+      <div class="chip-text">الغرفة لم تكن نظيفة والضوضاء كانت مزعجة طوال الليل</div>
+    </div>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat">
+    <span class="stat-val"><span class="gold">96.07</span>%</span>
+    <div class="stat-lbl">دقة النموذج</div>
+  </div>
+  <div class="stat">
+    <span class="stat-val">105,698</span>
+    <div class="stat-lbl">تقييم للتدريب</div>
+  </div>
+  <div class="stat">
+    <span class="stat-val">0.96</span>
+    <div class="stat-lbl">F1 Score</div>
+  </div>
+  <div class="stat">
+    <span class="stat-val">AraBERT</span>
+    <div class="stat-lbl">النموذج المستخدم</div>
+  </div>
+</div>
+
+<footer>
+  <p>بناء بواسطة <a href="https://github.com/dralsarrani" target="_blank">Danah Al-Sarrani</a></p>
+  <p>
+    <a href="https://huggingface.co/dralsarrani/arabert-sentiment" target="_blank">النموذج</a> ·
+    <a href="https://huggingface.co/datasets/dralsarrani/AraReview" target="_blank">البيانات</a> ·
+    <a href="https://github.com/dralsarrani" target="_blank">GitHub</a>
+  </p>
+</footer>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────────────────
+  // Update this URL after deploying your FastAPI backend to HuggingFace Spaces
+  const API_URL = "https://dralsarrani-arareviews-api.hf.space/predict";
+
+  // ── HELPERS ─────────────────────────────────────────────────────────────────
+  function updateCount(el) {
+    document.getElementById("char-count").textContent = el.value.length;
+  }
+
+  function fillExample(text) {
+    const ta = document.getElementById("review-input");
+    ta.value = text;
+    updateCount(ta);
+    ta.focus();
+  }
+
+  // ── ANALYZE ─────────────────────────────────────────────────────────────────
+  async function analyze() {
+    const text = document.getElementById("review-input").value.trim();
+    if (!text) return;
+
+    const btn     = document.getElementById("analyze-btn");
+    const spinner = document.getElementById("spinner");
+    const btnText = document.getElementById("btn-text");
+    const result  = document.getElementById("result");
+
+    // Loading state
+    btn.disabled      = true;
+    spinner.style.display = "block";
+    btnText.textContent   = "جارٍ التحليل...";
+    result.style.display  = "none";
+
+    try {
+      const res  = await fetch(API_URL, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ text }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      // Show result
+      const isPositive = data.label === "positive";
+      result.className = `result ${data.label}`;
+
+      document.getElementById("result-icon").textContent =
+        isPositive ? "😊" : "😞";
+      document.getElementById("result-label").textContent =
+        isPositive ? "إيجابي ✅" : "سلبي ❌";
+      document.getElementById("result-confidence").textContent =
+        `درجة الثقة: ${(data.confidence * 100).toFixed(1)}%`;
+
+      result.style.display = "block";
+      setTimeout(() => {
+        document.getElementById("confidence-bar").style.width =
+          `${data.confidence * 100}%`;
+      }, 100);
+
+    } catch (err) {
+      result.className = "result error";
+      document.getElementById("result-icon").textContent  = "⚠️";
+      document.getElementById("result-label").textContent = "حدث خطأ";
+      document.getElementById("result-confidence").textContent =
+        "تعذّر الاتصال بالخادم. تأكد من تشغيل الـ API.";
+      document.getElementById("confidence-bar").style.width = "0%";
+      result.style.display = "block";
+    } finally {
+      btn.disabled          = false;
+      spinner.style.display = "none";
+      btnText.textContent   = "تحليل المشاعر";
+    }
+  }
+
+  // Enter key support
+  document.getElementById("review-input").addEventListener("keydown", e => {
+    if (e.key === "Enter" && e.ctrlKey) analyze();
+  });
+</script>
+
+</body>
+</html>
