@@ -10,6 +10,7 @@ Fine-tuned AraBERT model for Arabic sentiment analysis, trained on 105K hotel re
 **Live Demo → [![Live Demo](https://img.shields.io/badge/🌐%20Live%20Demo-AraReview-blue)](https://dralsarrani.github.io/AraReview/)**
 
 ![AraReview UI](AraReview.gif)
+
 ---
 
 ## 📊 Results
