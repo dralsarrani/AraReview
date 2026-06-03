@@ -191,7 +191,7 @@ The model was trained on the **HARD dataset** (Hotel Arabic Reviews Dataset) —
 
 ## 👤 Author
 
-**Danah Al-Sarrani** — AI Engineer
+**Danah Al-Sarrani** 
 
 [![GitHub](https://img.shields.io/badge/GitHub-dralsarrani-black)](https://github.com/dralsarrani)
 [![HuggingFace](https://img.shields.io/badge/🤗-dralsarrani-yellow)](https://huggingface.co/dralsarrani)
